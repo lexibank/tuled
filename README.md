@@ -22,30 +22,30 @@ Conceptlists in Concepticon:
 ## Statistics
 
 
-[![CLDF validation](https://github.com/tupian-language-resources/tuled/workflows/CLDF-validation/badge.svg)](https://github.com/tupian-language-resources/tuled/actions?query=workflow%3ACLDF-validation)
-![Glottolog: 90%](https://img.shields.io/badge/Glottolog-90%25-green.svg "Glottolog: 90%")
-![Concepticon: 97%](https://img.shields.io/badge/Concepticon-97%25-green.svg "Concepticon: 97%")
-![Source: 95%](https://img.shields.io/badge/Source-95%25-green.svg "Source: 95%")
+[![CLDF validation](https://github.com/lexibank/tuled/workflows/CLDF-validation/badge.svg)](https://github.com/lexibank/tuled/actions?query=workflow%3ACLDF-validation)
+![Glottolog: 90%](https://img.shields.io/badge/Glottolog-90%25-yellowgreen.svg "Glottolog: 90%")
+![Concepticon: 99%](https://img.shields.io/badge/Concepticon-99%25-green.svg "Concepticon: 99%")
+![Source: 94%](https://img.shields.io/badge/Source-94%25-green.svg "Source: 94%")
 ![BIPA: 100%](https://img.shields.io/badge/BIPA-100%25-brightgreen.svg "BIPA: 100%")
 ![CLTS SoundClass: 100%](https://img.shields.io/badge/CLTS%20SoundClass-100%25-brightgreen.svg "CLTS SoundClass: 100%")
 
-- **Varieties:** 89
-- **Concepts:** 447
-- **Lexemes:** 25,004
-- **Sources:** 254
+- **Varieties:** 90 (linked to 68 different Glottocodes)
+- **Concepts:** 447 (linked to 439 different Concepticon concept sets)
+- **Lexemes:** 25,024
+- **Sources:** 255
 - **Synonymy:** 1.08
-- **Cognacy:** 28,978 cognates in 5,862 cognate sets (3,362 singletons)
+- **Cognacy:** 29,223 cognates in 5,863 cognate sets (3,384 singletons)
 - **Cognate Diversity:** 0.22
 - **Invalid lexemes:** 0
-- **Tokens:** 118,978
-- **Segments:** 404 (0 BIPA errors, 0 CTLS sound class errors, 403 CLTS modified)
-- **Inventory size (avg):** 59.00
+- **Tokens:** 119,208
+- **Segments:** 458 (0 BIPA errors, 0 CLTS sound class errors, 457 CLTS modified)
+- **Inventory size (avg):** 59.97
 
 ## Possible Improvements:
 
 
 
-- Entries missing sources: 1334/25004 (5.34%)
+- Entries missing sources: 1457/25024 (5.82%)
 
 # Contributors
 
@@ -54,7 +54,6 @@ Name | Affiliation | GitHub user | Description | Role
 Fabrício Ferraz Gerardi | Universität Tübingen | @LanguageStructure | Data Collector, cognacy assignment, co-lexifications, notes | Author
 Stanislav Reichert | Universität Tübingen |@StasReichert | Data Collector | Author
 Carolina Aragon | UFPB | @carolinaaragon | Data Collector,cognacy assignment, co-lexifications, notes | Author
-Fernando Orphão de Carvalho | Museu Nacional-UFRJ | @fernaoorphao | Data Collector, cognacy assignment, co-lexifications, notes | Author
 Tim Wientzek | Universität Tübingen | @TGH-2020 | Data Collector | Author
 Agnaldo Makuráp | | | Data Provider | DataCollector 
 Denny Moore | Museu Paraense Emílio Goeldi | | Data Provider | DataCollector
