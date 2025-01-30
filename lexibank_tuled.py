@@ -1,20 +1,12 @@
-import attr
 from pathlib import Path
-import subprocess
-
+import attr
+from csvw import Datatype
 from pylexibank import Concept, Language, Cognate, Lexeme
 from pylexibank.dataset import Dataset as BaseDataset
 from pylexibank.util import progressbar
-from csvw import Datatype
 from pyclts import CLTS
-try:
-    from pytular.util import fetch_sheet
-except ImportError:
-    fetch_sheet = None
-
-
-import lingpy
-from clldutils.misc import slug
+from lingpy import Multiple, Wordlist
+from lingpy.basictypes import lists
 
 
 @attr.s
@@ -52,30 +44,18 @@ class Dataset(BaseDataset):
     language_class = CustomLanguage
     cognate_class = CustomCognate
     lexeme_class = Form
-
-    def cmd_download(self, args):
-        args.log.info('updating ...')
-        self.raw_dir.download(
-            "https://lingulist.de/edictor/triples/get_data.py?file=tuled&remote_dbase=tuled.sqlite3",
-            "tuled.tsv"
-        )
-
-        subprocess.check_call(
-            'git -C {} submodule update --remote'.format(self.dir.resolve()), shell=True)
-        args.log.info('... sources.bib done')
-        fetch_sheet('languages', output=self.etc_dir / 'languages.tsv')
+    writer_options = dict(keep_languages=False, keep_parameters=False)
 
     def cmd_makecldf(self, args):
-        from pybtex import errors, database
+        from pybtex import database, errors
         errors.strict = False
-        bibdata = database.parse_file(str(self.raw_dir.joinpath('bibliography', 'sources.bib')))
+        bibdata = database.parse_file(str(self.raw_dir.joinpath('sources.bib')))
         args.writer.add_sources(bibdata)
         args.writer["FormTable", "Segments"].datatype = Datatype.fromvalue(
             {"base": "string", "format": "([\\S]+)( [\\S]+)*"}
             )
         args.writer["FormTable", "Morphemes"].separator = " "
         args.writer["FormTable", "PartialCognates"].separator = " "
-
         concepts = args.writer.add_concepts(lookup_factory=lambda c: c.english)
         errors, blacklist = set(), set()
 
@@ -83,9 +63,9 @@ class Dataset(BaseDataset):
         sources = {}
         for row in self.languages:
             if not -90 < float(row['Latitude']) < 90:
-                errors.add('LATITUDE {0}'.format(row['Name']))
+                errors.add(f'LATITUDE {row["Name"]}')
             elif not -180 < float(row['Longitude']) < 180:
-                errors.add('LONGITUDE {0}'.format(row['Name']))
+                errors.add(f'LONGITUDE {row["Name"]}')
             else:
                 try:
                     args.writer.add_language(
@@ -102,14 +82,13 @@ class Dataset(BaseDataset):
                         if source in bibdata.entries:
                             sources[row['Name']] += [source]
                         else:
-                            errors.add('BIBTEX MISSING {0}'.format(source))
-                except ValueError:
-                    errors.add('LANGUAGE ID {0}'.format(
-                        row['ID'],
-                        ))
-                    args.log.warning('Invalid Language ID {0}'.format(row['ID']))
+                            errors.add(f'BIBTEX MISSING {source}')
 
-        wl = lingpy.Wordlist(self.raw_dir.joinpath('tuled.tsv').as_posix())
+                except ValueError:
+                    errors.add(f'LANGUAGE ID {row["ID"]}')
+                    args.log.warning(f'Invalid Language ID {row["ID"]}')
+
+        wl = Wordlist(self.raw_dir.joinpath('tuled.tsv').as_posix())
         etd = wl.get_etymdict(ref='cogids')
         alignments, problems = {}, set()
         for cogid, vals in progressbar(etd.items(), desc='aligning data'):
@@ -121,7 +100,7 @@ class Dataset(BaseDataset):
             alms, new_idxs = [], []
             for idx, pos in zip(idxs, positions):
                 try:
-                    tks = lingpy.basictypes.lists(wl[idx, 'tokens']).n[pos]
+                    tks = lists(wl[idx, 'tokens']).n[pos]
                     if not ' '.join(tks).strip():
                         raise IndexError
                     alms += [tks]
@@ -129,47 +108,42 @@ class Dataset(BaseDataset):
                 except IndexError:
                     problems.add((idx, pos))
             if alms:
-                msa = lingpy.Multiple(alms)
+                msa = Multiple(alms)
                 msa.prog_align()
                 for i, alm in enumerate(msa.alm_matrix):
                     alignments[new_idxs[i][0], new_idxs[i][1], cogid] = ' '.join(alm)
             else:
-                errors.add('ALIGNMENT empty {0}'.format(cogid))
+                errors.add(f'ALIGNMENT empty {cogid}')
 
         bipa = CLTS(args.clts.dir).bipa
         for idx, tokens, glosses, cogids, alignment in wl.iter_rows(
                 'tokens', 'morphemes', 'cogids', 'alignment'):
             tl, gl, cl, al = (
-                    len(lingpy.basictypes.lists(tokens).n),
+                    len(lists(tokens).n),
                     len(glosses),
                     len(cogids),
-                    len(lingpy.basictypes.lists(alignment).n)
+                    len(lists(alignment).n)
                     )
             if tl != gl or tl != cl or gl != cl or al != gl or al != cl:
-                errors.add('LENGTH: {0} {1} {2}'.format(
-                    idx,
-                    wl[idx, 'language'],
-                    wl[idx, 'concept']))
+                errors.add(f'LENGTH: {idx} {wl[idx, "language"]} {wl[idx, "concept"]}')
                 blacklist.add(idx)
             for token in tokens:
                 if bipa[token].type == 'unknownsound':
-                    errors.add('SOUND: {0}'.format(token))
+                    errors.add(f'SOUND: {token}')
                     blacklist.add(idx)
 
         visited = set()
         for idx in wl:
             if wl[idx, 'concept'] not in concepts:
                 if wl[idx, 'concept'] not in visited:
-                    args.log.warning('Missing concept {0}'.format(wl[idx,
-                    'concept']))
+                    args.log.warning(f'Missing concept {wl[idx, "concept"]}')
                     visited.add(wl[idx, 'concept'])
-                    errors.add('CONCEPT {0}'.format(wl[idx, 'concept']))
+                    errors.add(f'CONCEPT {wl[idx, "concept"]}')
             elif wl[idx, 'doculect'] not in languages:
                 if wl[idx, 'doculect'] not in visited:
-                    args.log.warning("Missing language {0}".format(wl[idx, 'doculect']
-                        ))
+                    args.log.warning(f'Missing language {wl[idx, "doculect"]}')
                     visited.add(wl[idx, 'doculect'])
-                    errors.add('LANGUAGE {0}'.format(wl[idx, 'doculect']))
+                    errors.add(f'LANGUAGE {wl[idx, "doculect"]}')
             else:
                 if ''.join(wl[idx, 'tokens']).strip() and idx not in blacklist:
                     lex = args.writer.add_form_with_segments(
@@ -194,9 +168,7 @@ class Dataset(BaseDataset):
                                 Alignment_Method='SCA'
                                 )
                 else:
-                    args.log.warning('Entry ID={0}, concept={1}, language={2} is empty'.format(
-                        idx, wl[idx, 'concept'], wl[idx, 'doculect']))
-        
+                    args.log.warning(f"Entry ID={idx}, concept={wl[idx, 'concept']}, language={wl[idx, 'doculect']} is empty")
 
         with open(self.dir.joinpath('errors.md'), 'w', encoding="utf-8") as f:
             f.write('# Error Analysis for TULED\n')
